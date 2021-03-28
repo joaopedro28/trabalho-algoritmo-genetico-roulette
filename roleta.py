@@ -3,20 +3,15 @@ from random import randint, random
 from operator import add
 from functools import reduce
 
-def select(arrFitness, peso, pesoMaximo, arrMochila):
+def select(arrFitness, peso, pesoMaximo, arrMochila): # Função da roleta 
     counti = 0
     countj = 0
-    pesoIndividuo = 0
-    Pesado = []
-    # print('arr mochila', arrMochila)
+    pesoIndividuo = 0 
+    Pesado = [] #inicio de um array que vai conter as posições dos cromossomos que possuem as combinações que ultrapassam o pesoMaximo
+    # o For abaixo foi criado para evitar que futuros cromossomos continuem com combinações que exedam o valor maximo que a mochila suporta
     for i in arrMochila:
-        # print('arr mochila - posicao i ', arrMochila[i])
-        # print('arr mochila - posicao counti ', arrMochila[counti])
         for j in arrMochila[counti]:
-            # print('IIIIIIIIIIIIII',i)
             if (j == 1):
-                # print('JOTAJOTA',j)
-                # print(peso[countj])
                 pesoIndividuo =  pesoIndividuo + peso[countj]
             countj += 1
         if (pesoIndividuo > pesoMaximo):
@@ -24,18 +19,15 @@ def select(arrFitness, peso, pesoMaximo, arrMochila):
         counti += 1
         countj = 0
         pesoIndividuo=0
-    
-    # print('AAAAAAAAAAAAARRAY MOCHILA - ANTES', arrMochila)
-    # print(len(arrMochila))
-    # somelist = range(len(arrMochila))
-    arrMochila = [i for j, i in enumerate(arrMochila) if j not in Pesado]
-    # print('AAAAAAAAAAAAARRAY MOCHILA - DEPOIS', arrMochila)    
+# Ja o For abaixo esta repreenchendo o array mochila somento com cromossomos que não ultrapassam o limite de peso.
+    arrMochila = [i for j, i in enumerate(arrMochila) if j not in Pesado] 
+# Aqui é feito uma escolha aleatória de um numero de 0 até a soma dos valores de fitness, para pegar o numero de Parents que serão usados nesta época
     p = randint(0, sum(arrFitness)) 
     for x, f in enumerate(arrFitness):
-        # print(x,f)
         if p <= 0:
             break
         p -= f
+# É retornado o numero de Parents que haverão na população e as posições que ultrapassam o peso e que devem ser desconsideradas.
     return [x, Pesado]
 
 def individual(length, min, max):
@@ -69,7 +61,6 @@ def fitness(cromossomo, importancia, target):
     
     for gene in cromossomo:
         if(gene == 1):
-            # print(peso[count])
             importanciaCromossomo.append(importancia[count])
         count = count + 1
     
@@ -84,53 +75,48 @@ def media_fitness(pop, target, peso, importancia):
     return summed / (len(pop) * 1.0)
 
 def evolve(pop, cromo, peso, target, i_length, importancia, pesoMaximo, retain=0.2, random_select=0.05, mutate=0.01):
-    graded = [ (fitness(x, importancia, target), x) for x in pop]
-    parents = []
-    #variavel para o SUM dos fitness.
-    somatorio = 0
+    graded = [ (fitness(x, importancia, target), x) for x in pop] #criação de um array que recebe as fitness de cada cromossomo da população [(fiteness,[população])]
+    parents = [] #inicio do arrai de pais
+    
+    somatorio = 0 #variavel para o SUM dos fitness.
 
-    for x in graded:
+    for x in graded: # Ordenação da melhor fitness
         somatorio = somatorio + x[0]
         #Aqui será feita a ordenaçao do menor fitness para o maior fitness
         graded = [ x for x in sorted(graded)]
     
     arrFitness = []
     arrMochila = []
-    for individual in graded:
+    for individual in graded: #separa em dois arrays um possuindo todas as fitness e um possuindo todas combinações 
         arrFitness.append(individual[0])
         arrMochila.append(individual[1])    
-    resultado = select(arrFitness, peso, pesoMaximo, arrMochila)
-    while(resultado[0] <= 1):
+    resultado = select(arrFitness, peso, pesoMaximo, arrMochila) # Aplica o metodo de roleta
+    while(resultado[0] <= 1): # Caso a roleta entregue apenas um parente, é refeito do Metodo para que não ocorra erro
         resultado = select(arrFitness, peso, pesoMaximo, arrMochila)
 
-    # print('resultado', resultado)
-    # print('graded - antes de titrar os pesados', graded)
-    # print('ARRAY MOCHILA DENTRO DO EVOLVE', arrMochila)
-    arrMochila = [i for j, i in enumerate(arrMochila) if j not in resultado[1]]
-    # print('arrmochila- depois de tirar os pesados', arrMochila)
-    
+    # Este for utiliza as informações retornadas pela função select para descartar as posições que exedem o limite de peso.
+    arrMochila = [i for j, i in enumerate(arrMochila) if j not in resultado[1]] 
+        
+    # Caso a roleta entregue um numero maior do que o de cromossomos restantes o resultado ira receber o valor minimo, que seria o proprio numero de cromossomos restantes.
     if(len(arrMochila) < resultado[0]):
         resultado[0] = len(arrMochila)
-
+    # For serve para criar os Parents.
     for i in range(resultado[0]):
         parents.append(arrMochila[i])
-    # print('PARENTS - ', parents)
+    # Aqui ele faz a mutação conforme os Parents recebidos
     for individual in parents:
         if mutate > random():
             pos_to_mutate = randint(0, len(individual)-1)
             individual[pos_to_mutate] = randint(
                 min(individual), max(individual))
-    # print('PARADA 2')
     parents_length = len(parents)
     desired_length = len(pop) - parents_length
     children = []
     'comeca a gerar filhos que faltam'
     while len(children) < desired_length:
-        # print('PAIS',parents)
         'escolhe pai e mae no conjunto de pais'
         male = randint(0, parents_length-1)
         female = randint(0, parents_length-1)
-        # print(male,female)
         if male != female:
             male = parents[male]
             female = parents[female]
@@ -139,8 +125,6 @@ def evolve(pop, cromo, peso, target, i_length, importancia, pesoMaximo, retain=0
             child = male[:half] + female[half:]
             'adiciona novo filho a lista de filhos'
             children.append(child)
-    # print('PARADA 3')
     'adiciona a lista de pais (elites) os filhos gerados'
     parents.extend(children)
-    # print('PARADA 4')
     return parents
